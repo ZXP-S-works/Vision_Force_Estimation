@@ -1,0 +1,159 @@
+<?xml version="1.0"?>
+<robot name="modelt">
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <mesh filename="package://ohp_model_t_model/meshes/base_link.STL"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="finger1_prox">
+    <visual>
+      <geometry>
+	<mesh filename="package://ohp_model_t_model/meshes/finger_prox.STL"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="base_to_finger1" type="revolute">
+    <axis xyz="0 -1 0"/>
+    <limit effort="1000.0" lower="0.0" upper="2.35619" velocity="0.5"/>
+    <origin rpy="0 0 0" xyz="0.01453 -0.00902 0.05475"/>
+    <parent link ="base_link"/>
+    <child link="finger1_prox"/>
+  </joint>
+
+  <link name="finger1_dist">
+    <visual>
+      <geometry>
+	<mesh filename="package://ohp_model_t_model/meshes/finger_dist.STL"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="prox_to_dist1" type="revolute">
+    <axis xyz="0 -1 0"/>
+    <limit effort="1000.0" lower="0.314159" upper="1.885" velocity="0.5"/>
+    <origin rpy="0 0 0" xyz="0.061 0 0.004"/>
+    <parent link ="finger1_prox"/>
+    <child link="finger1_dist"/>
+  </joint>
+
+  <link name="finger2_prox">
+    <visual>
+      <geometry>
+        <mesh filename="package://ohp_model_t_model/meshes/finger_prox.STL"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+  </link>
+
+  <joint name="base_to_finger2" type="revolute">
+    <axis xyz="0 -1 0"/>
+    <limit effort="1000.0" lower="0.0" upper="2.35619" velocity="0.5"/>
+    <origin rpy="0 0 0" xyz="0.01453 0.02765 0.05475"/>
+    <parent link ="base_link"/>
+    <child link="finger2_prox"/>
+  </joint>
+
+  <link name="finger2_dist">
+    <visual>
+      <geometry>
+        <mesh filename="package://ohp_model_t_model/meshes/finger_dist.STL"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="prox_to_dist2" type="revolute">
+    <axis xyz="0 -1 0"/>
+    <limit effort="1000.0" lower="0.314159" upper="1.885" velocity="0.5"/>
+    <origin rpy="0 0 0" xyz="0.061 0 0.004"/>
+    <parent link ="finger2_prox"/>
+    <child link="finger2_dist"/>
+  </joint>
+
+  <link name="finger3_prox">
+    <visual>
+      <geometry>
+        <mesh filename="package://ohp_model_t_model/meshes/finger_prox.STL"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+  </link>
+
+  <joint name="base_to_finger3" type="revolute">
+    <axis xyz="0 -1 0"/>
+    <limit effort="1000.0" lower="0.0" upper="2.35619" velocity="0.5"/>
+    <origin rpy="0 0 3.14159" xyz="-0.01453 0.00902 0.05475"/>
+    <parent link ="base_link"/>
+    <child link="finger3_prox"/>
+  </joint>
+
+  <link name="finger3_dist">
+    <visual>
+      <geometry>
+        <mesh filename="package://ohp_model_t_model/meshes/finger_dist.STL"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="prox_to_dist3" type="revolute">
+    <axis xyz="0 -1 0"/>
+    <limit effort="1000.0" lower="0.314159" upper="1.885" velocity="0.5"/>
+    <origin rpy="0 0 0" xyz="0.061 0 0.004"/>
+    <parent link ="finger3_prox"/>
+    <child link="finger3_dist"/>
+  </joint>
+
+  <link name="finger4_prox">
+    <visual>
+      <geometry>
+        <mesh filename="package://ohp_model_t_model/meshes/finger_prox.STL"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+  </link>
+
+  <joint name="base_to_finger4" type="revolute">
+    <axis xyz="0 -1 0"/>
+    <limit effort="1000.0" lower="0.0" upper="2.35619" velocity="0.5"/>
+    <origin rpy="0 0 3.14159" xyz="-0.01453 -0.02765 0.05475"/>
+    <parent link ="base_link"/>
+    <child link="finger4_prox"/>
+  </joint>
+
+  <link name="finger4_dist">
+    <visual>
+      <geometry>
+        <mesh filename="package://ohp_model_t_model/meshes/finger_dist.STL"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="prox_to_dist4" type="revolute">
+    <axis xyz="0 -1 0"/>
+    <limit effort="1000.0" lower="0.314159" upper="1.885" velocity="0.5"/>
+    <origin rpy="0 0 0" xyz="0.061 0 0.004"/>
+    <parent link ="finger4_prox"/>
+    <child link="finger4_dist"/>
+  </joint>
+</robot>
