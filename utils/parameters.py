@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import argparse
 
-
 def strToBool(value):
     if value.lower() in {'false', 'f', '0', 'no', 'n'}:
         return False
@@ -16,10 +15,11 @@ def parse_args():
 
     # neural network
     parser.add_argument('--network', type=str, default='transformerresnet',
-                        choices=['resunet', 'resnet', 'resnetcubic', 'ecnn', 'tf', 'mlpresnet', 'transformerresnet'])
+                        choices=['mlpresnet', 'transformerresnet'])
     parser.add_argument('--n_input_channel', type=int, default=3)
     parser.add_argument('--n_output_channel', type=int, default=2)
     parser.add_argument('--n_hidden', type=int, default=32)
+    parser.add_argument('--dropout', type=float, default=0)
     parser.add_argument('--n_history', type=int, default=10)
     parser.add_argument('--n_servo_info', type=int, default=0)
     parser.add_argument('--history_interval', type=int, default=1)
@@ -42,13 +42,6 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--weight_decay', type=float, default=1e-5)
     parser.add_argument('--bs', type=int, default=64)
-    parser.add_argument('--env_type', type=str, default='real_world_xz',
-                        choices=['simulation_force', 'simulation_joint', 'simulation_force_joint','real_world_yz',
-                                 'real_world_xz', 'real_world_xyz', 'simulation_joint2force'])
-    parser.add_argument('--rot_aug', type=float, default=0)
-    parser.add_argument('--dropout', type=float, default=0)
-    parser.add_argument('--vflip_aug', type=strToBool, default=False)
-    parser.add_argument('--trans_aug', type=float, default=0)
     parser.add_argument('--l1_weight', type=float, default=1)
     parser.add_argument('--l2_weight', type=float, default=1)
     parser.add_argument('--l1_loss', type=str, default='CE', choices=['CE', 'BCE', 'MSE'])

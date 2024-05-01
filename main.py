@@ -8,7 +8,7 @@ import collections
 from tqdm import tqdm
 from utils.parameters import parse_args
 from utils.logger import Logger
-from utils.dataset import Dataset, ImgForce, VisionForceDataset
+from utils.dataset import ImgForce, VisionForceDataset
 from model.vision_force_estimator import create_estimator
 import cProfile
 def set_seed(s):
@@ -161,7 +161,6 @@ def train():
             break
 
     best_epoch = np.argmin(np.asarray(logger.data['l2_f']))
-    # best_model_path = os.path.join(logger.checkpoint_dir, str(best_epoch)+'.pt')
     best_model_path = os.path.join(logger.checkpoint_dir, 'best_val.pt')
     estimator.loadModel(best_model_path)
     valid_step(estimator, test_set, args.bs, logger, num_test, args.valid_continuous_sampling, args.valid_sample_in_order)
@@ -172,4 +171,3 @@ def train():
 
 if __name__ == '__main__':
     train()
-    # cProfile.run('train()','./train_stats2')

@@ -1,0 +1,13 @@
+einops==0.7.0
+matplotlib==3.7.2
+numpy==1.25.2
+pandas==2.2.2
+Pillow==10.3.0
+polygenerator==0.2.0
+pycocotools==2.0.7
+scipy==1.13.0
+scikit-image==0.21.0
+torch==2.2.0
+torchvision==0.17
+tqdm==4.66.0
+opencv-python==4.7.0.68

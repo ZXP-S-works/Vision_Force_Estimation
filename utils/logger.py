@@ -7,7 +7,6 @@ from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 import json
 from tqdm import tqdm
-# from utils.parameters import *
 import collections
 
 ImgForce = collections.namedtuple('ImgForce', 'img, x, f')
@@ -79,7 +78,7 @@ class Logger(object):
                 plt.plot(value, label='train')
             plt.xlabel('epoch')
             plt.ylabel('loss')
-            plt.yscale('log')
+            # plt.yscale('log')
             plt.legend()
             plt.title(str(key))
             plt.tick_params(axis='y', which='minor')

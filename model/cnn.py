@@ -232,21 +232,6 @@ class MlpResNet(ResUNet):
         print('Free parameters: ', self.total_params)
 
     def forward(self, obs, return_entire_history = None):
-        # with torch.no_grad():
-        #     h = self.pre_conv(obs)
-        #     h = self.conv_down(h)
-        #     flat = global_max_pool(h)
-        # # randomly allowing 1 image over n_history to have gradient;
-        # # this could speed up training and avoid non-iid issue
-        # bs = obs.shape[0] // self.n_history
-        # idx = np.random.randint(0, self.n_history)
-        # g_obs = obs[idx::bs]
-        # g_h = self.pre_conv(g_obs)
-        # g_h = self.conv_down(g_h)
-        # g_flat = global_max_pool(g_h)
-        # flat[idx::bs] = g_flat
-        # flat = flat.reshape(-1, self.bottleneck_size)
-
         h = self.pre_conv(obs)
         h = self.conv_down(h)
         flat = global_max_pool(h)

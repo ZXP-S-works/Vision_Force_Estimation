@@ -5,24 +5,17 @@ import torch
 import torch.nn.functional as F
 from torchvision.transforms import v2
 import numpy as np
-from model.aug import RotTransAug
 from model.cnn import ResUNet, ResNet, MLP, ResNetCubic, MlpResNet, TransformerResNet
-# from model.ecnn import SO2SteerableCNN
 from model.tf import SimpleViT, posemb_sincos_2d_v2
 import torchvision.transforms.functional as TF
-try:
-    import polygenerator 
-except:
-    pass
+import polygenerator 
 from PIL import Image, ImageDraw
 import random, copy
 import os
-from icecream import ic
 import matplotlib.pyplot as plt
 
 def flatten_x(x, w):
     return x[:, 0] * w + x[:, 1]
-
 
 def unflatten_x(x_flat, w):
     return torch.stack((x_flat // w, x_flat % w), dim=1)
@@ -39,13 +32,10 @@ def generate_random_patch(N_indices_range, width_range, height_range, center):
     # normalized_polygon = polygenerator.random_polygon(num_points = N_indices)
     normalized_polygon = polygenerator.random_convex_polygon(num_points = N_indices)
     polygon = []
-    # ic(polygon_width,polygon_height, center)
     for pt in normalized_polygon:
         polygon.append((int(pt[0]*polygon_width + center[0]), int(pt[1]*polygon_height + center[1])))
     return polygon
 
-# aug_transforms = v2.Compose([
-#     v2.ColorJitter(brightness = 0.3, contrast = 0.3, saturation = 0.3),])
 aug_transforms = v2.Compose([
     v2.ColorJitter(brightness = 0.1, saturation = 0.1),])
 
@@ -62,8 +52,6 @@ class VisionForceEstimator:
         self.l2_weight = args.l2_weight
         self.l1_loss = args.l1_loss
         self.l2_loss = args.l2_loss
-        self.aug = RotTransAug(args.rot_aug, args.trans_aug, args.vflip_aug)
-        self.env_type = args.env_type
         self.resolution = args.resolution
         self.n_history = args.n_history
         self.n_servo_info = args.n_servo_info
@@ -126,11 +114,8 @@ class VisionForceEstimator:
             #augment entire batch of images together
             for item in batch:
                 item_img = item.img
-                # if is_train and self.segmentation_aug:
-                #     tem_img = self.aug_segmented(item_img, self.background_img_folder) 
                 if is_train and self.segmentation_aug:
-                # if self.segmentation_aug:
-                    tem_img = self.aug_segmented(item_img, self.background_img_folder, patch_mask=mask_img) 
+                    item_img = self.aug_segmented(item_img, self.background_img_folder, patch_mask=mask_img) 
                 if item_img.shape[0] != 3:
                     item_img = np.swapaxes(item_img, 0, 2)
                 img.append(torch.tensor(item_img, dtype=torch.float)[:3].unsqueeze(0))
@@ -142,78 +127,24 @@ class VisionForceEstimator:
                 img.append(torch.tensor(item_img, dtype=torch.float)[:3].unsqueeze(0))
 
         for item in batch:
-            ## fix error in the dataset where axies 0&2 are swapped
             if item.x is not None:
                 x.append(torch.tensor(item.x, dtype=torch.float).reshape(1, -1))
             else:
                 x.append(torch.tensor([[0]]))
             f.append(torch.tensor(item.f, dtype=torch.float).reshape(1, -1))
-            # servo = item.servo_info['servo_loads'] + item.servo_info['servo_current_encoder'] + item.servo_info['servo_target_encoder']
-            # servo_info.append(torch.tensor(servo, dtype=torch.float).reshape(1, -1))
 
-        # ToDo: add servo info data loading
-        x = torch.cat(x) #(B*history_length) X h
+
+        x = torch.cat(x)
         f = torch.cat(f)
         img = torch.cat(img)
-        # servo_info = torch.cat(servo_info)
-
-        # servo_info_max = torch.tensor([1434., 1434., 1434.,2354.,2354.,2354.])
-        # servo_info_min = torch.tensor([-4,-4,-4,59,59,58])
-        # servo_info = (servo_info - servo_info_min)/(servo_info_max - servo_info_min)
-
-
-        # print(f.shape, servo_info.shape)
-        if self.env_type.find('simulation') != -1 and img.shape[-1] != self.resolution:
-            assert img.shape[-1] > self.resolution  # we only down-sampling
-            img = F.interpolate(img, size=(self.resolution, self.resolution), mode='bilinear', align_corners=False)
-        if self.env_type.find('simulation') != -1:
-            x += torch.as_tensor((0.2, 0.15)).reshape(1, 2)
-            x *= torch.as_tensor((10, 5)).reshape(1, 2)
-
-        # organize data
-        # in realworld: xyz => -xzy
-        if self.env_type == 'real_world_xz':
-            f = torch.cat((f[:, 0:1], f[:, 2:3]), dim=-1)
-        elif self.env_type == 'real_world_yz':
-            f = f[:,1:3]
-        elif self.env_type == 'real_world_xyz':
-            f = f[:, :3]
-        elif self.env_type == 'simulation_force_joint':
-            f = torch.cat((f, x), dim=1)
-        elif self.env_type == 'simulation_joint2force':
-            img = x
-        elif self.env_type == 'simulation_joint':
-            f = x
-        elif self.env_type == 'simulation_force':
-            pass
-        else:
-            raise NotImplementedError
-
-        # #augment data
-        # if is_train and self.env_type in ['real_world_xz', 'real_world_yz', 'real_world_xyz', 'simulation_force_joint']:
-        #     # force is SO(2) equivariant
-        #     print(f, img)
-        #     img, f_xy = self.aug.aug(img, f[:, :2])
-        #     print(img, f_xy)
-        #     #print(img- img_2)
-        #     #print(f[:,:2] - f_xy)
-        #     #f[:, :2] = f_xy
-        # if is_train and self.env_type in ['simulation_force']:
-        #     # force is SO(2) equivariant
-        #     img, f = self.aug.aug(img, f)
-        # elif is_train and self.env_type == 'simulation_joint':
-        #     # finger joint reading is SE(2) invariant
-        #     img, _ = self.aug.aug(img, torch.zeros_like(f))
+        f = f[:,1:3] #raw data contains 6D F/T readings
 
         ## photo metric augmentation:
         if is_train:
             img = self.aug_by_batch(img/255, self.segmented_imgs)
             img *= 255
-
-        # f = self.normalize_f(f)
         if not return_entire_history:
             f = f[self.n_history - 1::self.n_history]  # only retrieve the last force data in the history
-        
         img, x, f = img.to(self.device), x.to(self.device), f.to(self.device)
         if use_position_feature:
             position_feature_tensor = self.position_feature_tensor.detach().clone()
@@ -222,10 +153,8 @@ class VisionForceEstimator:
         elif use_position_embedding:
             position_emb_tensor = self.position_emb_tensor.detach().clone()
             position_emb_tensor = torch.tile(position_emb_tensor, (img.shape[0],1,1,1))
-            img = torch.concatenate((img, position_emb_tensor), axis = 1)
-            
-        # servo_info = servo_info.to(self.device)
-        return img, x, f, None #servo_info
+
+        return img, x, f, None
 
     def aug_by_batch(self, img, segmented_imgs = False):
         n_batches = int(img.shape[0]/self.n_history)
@@ -243,13 +172,6 @@ class VisionForceEstimator:
                 TF.adjust_saturation(img[i*self.n_history:(i+1)*self.n_history], saturation_factor)
             img[i*self.n_history:(i+1)*self.n_history] = \
                 TF.adjust_hue(img[i*self.n_history:(i+1)*self.n_history], hue_factor)
-            # else:
-            #     for j in range(self.n_history):
-            #         mask = img[i*self.n_history + j] > 0
-            #         img[i*self.n_history + j][mask] = TF.adjust_brightness(img[i*self.n_history + j], brightness_factor)[mask]
-            #         img[i*self.n_history + j][mask] = TF.adjust_contrast(img[i*self.n_history + j], contrast_factor)[mask]
-            #         img[i*self.n_history + j][mask] = TF.adjust_saturation(img[i*self.n_history + j], saturation_factor)[mask]
-            #         img[i*self.n_history + j][mask] = TF.adjust_hue(img[i*self.n_history + j], hue_factor)[mask]
         return img
 
     def get_aug_segmented_mask(self, img):
@@ -259,8 +181,6 @@ class VisionForceEstimator:
             tmp_img = Image.new('L', [img.shape[1], img.shape[0]], 0)
         center_x = random.randint(0,20)
         center_y = random.randint(0,20)
-        # polygon = generate_random_patch(N_indices_range = [4,5], width_range=[140,160], \
-        #     height_range=[20,80], center = [center_x, center_y])
         polygon = generate_random_patch(N_indices_range = [4,5], width_range=[80,160], \
             height_range=[10,80], center = [center_x, center_y])
         if img.shape[0] == 3:
@@ -272,9 +192,6 @@ class VisionForceEstimator:
         if np.random.rand() > 0.5:
             tmp_img = tmp_img.transpose(Image.FLIP_LEFT_RIGHT)
         patch_mask = np.array(tmp_img)
-        # plt.imshow(patch_mask.astype(int))
-        # plt.show()
-        # plt.close()
         return patch_mask
 
     def aug_segmented(self, img, background_img_folder, patch_mask = None):
@@ -282,13 +199,6 @@ class VisionForceEstimator:
         if img.shape[0] == 3:
             img = np.swapaxes(img, 0, 2)
 
-        #aug by image
-        # if np.random.rand() > 0.5:
-
-        # aug by batch
-        # Remove random patch
-        # polygon = generate_random_patch(N_indices_range = [3,6], width_range=[20,60], \
-        #     height_range=[10,40], center = [80 - 30, 20 - 20])
         if patch_mask is None:
             center_x = random.randint(0,20)
             center_y = random.randint(0,20)
@@ -301,107 +211,11 @@ class VisionForceEstimator:
         for k in range(3):
             img_slice = img[:,:,k]
             img_slice[np.where(patch_mask>0.5)] = 0.
-        # plt.imshow(patch_mask.astype(int))
-        # plt.show()
-        # plt.close()
-        # exit()
-
-
-        # if np.random.rand() > 0.5:
-        #     # Add random background patch
-        #     img_fns = os.listdir(background_img_folder)
-        #     random.shuffle(img_fns)
-        #     bg_img = cv2.imread(os.path.join(background_img_folder,img_fns[0]))
-
-        #     max_width = 80
-        #     max_height = 50
-        #     bg_center = (random.choice(np.arange(0,bg_img.shape[0] - max_height)),\
-        #         random.choice(np.arange(0,bg_img.shape[1] - max_width))) # within the bg imag
-        #     bg_img_center = (random.choice(np.arange(0,90 - max_height)),\
-        #         random.choice(np.arange(0,160 - max_width))) ## within the image 
-        #     polygon = generate_random_patch(N_indices_range = [3,6], width_range=[10,max_width], \
-        #         height_range=[10,max_height], center = [0, 0])
-
-        #     bg_polygon = []
-        #     bg_img_polygon = []
-        #     for pt in polygon:
-        #         bg_polygon.append((pt[0] + bg_center[0], pt[1] + bg_center[1]))
-        #         bg_img_polygon.append((pt[0] + bg_img_center[0], pt[1] + bg_img_center[1]))
-            
-        #     tmp_img = Image.new('L', [bg_img.shape[1], bg_img.shape[0]], 0)
-        #     ImageDraw.Draw(tmp_img).polygon(bg_polygon, outline=1, fill=1)
-        #     bg_patch_mask = np.array(tmp_img)[bg_center[1]:bg_center[1]+max_height, \
-        #         bg_center[0]:bg_center[0]+max_width] ## this needs to be flipped I think
-
-
-        #     bg_patch = bg_img[bg_center[0]:bg_center[0]+max_height, \
-        #         bg_center[1]:bg_center[1]+max_width]
-        #     original_img_patch = copy.copy(img[bg_img_center[0]:bg_img_center[0]+max_height, \
-        #         bg_img_center[1]:bg_img_center[1]+max_width])
-
-        #     # remove finger in the patch
-        #     for k in range(3):
-        #         ori_patch_slice = original_img_patch[:,:,k]
-        #         bg_patch_slice = bg_patch[:,:,k]
-        #         bg_patch_slice[np.where(ori_patch_slice > 0.)] = 0
-        #     # keep only the part in the polygon
-        #     for k in range(3):
-        #         bg_patch_slice = bg_patch[:,:,k]
-        #     img[bg_img_center[0]:bg_img_center[0]+max_height, \
-        #         bg_img_center[1]:bg_img_center[1]+max_width] += bg_patch
-        #     # plt.imshow(img.astype(int))
-        #     # plt.show()
-        #     # plt.close()
-        #     # exit()
 
         if img.shape[2] == 3:
             img = np.swapaxes(img, 0, 2)
         return img
         
-    # def estimate(self, img):
-    #     p_map, f_map = self.forward(img)
-    #     p_x_hat, x_hat_flat = p_map.flatten(start_dim=1).max(dim=-1)
-    #     x_hat = unflatten_x(x_hat_flat, self.w)
-    #     f_hat = get_f_from_f_map(f_map, x_hat_flat)
-    #     return x_hat, f_hat, p_map, f_map
-
-    # def train_batch(self, batch):
-    #     img, x, f = self.load_batch(batch, is_train=True)
-    #     x_flat = flatten_x(x, self.w)
-    #     p_map, f_map = self.forward(img)
-    #     f_hat = get_f_from_f_map(f_map, x_flat)
-    #     if self.l1_loss == 'CE':
-    #         l1 = F.cross_entropy(p_map.flatten(start_dim=1), x_flat)
-    #     elif self.l1_loss == 'MSE':
-    #         l1 = F.mse_loss(p_map.flatten(start_dim=1)[torch.arange(len(x_flat)), x_flat], torch.ones(len(x_flat))) \
-    #              + F.mse_loss(p_map, torch.zeros_like(p_map))
-    #     elif self.l1_loss == 'BCE':
-    #         p_flat = torch.zeros_like(p_map.flatten(start_dim=1))
-    #         p_flat[torch.arange(len(x_flat)), x_flat] = 1
-    #         l1 = F.binary_cross_entropy_with_logits(p_map.flatten(start_dim=1), p_flat)
-    #         l1 += F.binary_cross_entropy_with_logits(p_map.flatten(start_dim=1)[torch.arange(len(x_flat)), x_flat],
-    #                                                  torch.ones(len(x_flat)))
-    #     else:
-    #         raise NotImplementedError
-    #     l2 = F.mse_loss(f_hat, f) + F.mse_loss(f_map, torch.zeros_like(f_map))
-    #     loss = l1 * self.l1_weight + l2 * self.l2_weight
-    #
-    #     self.optimizer.zero_grad()
-    #     loss.backward()
-    #     for param in self.network.parameters():
-    #         param.grad.data.clamp_(-1, 1)
-    #     self.optimizer.step()
-    #
-    #     return loss.item(), l1.item(), l2.item()
-    #
-    # def test(self, batch):
-    #     img, x, f = self.load_batch(batch)
-    #     with torch.no_grad():
-    #         x_hat, f_hat, p_map, f_map = self.estimate(img)
-    #         l2_x = F.mse_loss(x_hat.float(), x.float())
-    #         l2_f = F.mse_loss(f_hat, f)
-    #     return l2_x.item(), l2_f.item()
-
 
 class VisionForceEstimatorRegression(VisionForceEstimator):
     def __init__(self, args, net):
@@ -490,33 +304,7 @@ class VisionForceEstimatorRegression(VisionForceEstimator):
 
 
 def create_estimator(args):
-    if args.network == 'resunet':
-        net = ResUNet(n_input_channel=args.n_input_channel,
-                      n_output_channel=args.n_output_channel,
-                      n_hidden=args.n_hidden,
-                      kernel_size=args.kernel_size,
-                      resolution=args.resolution,
-                      dropout=args.dropout)
-        net.build()
-        net.to(args.device)
-        return VisionForceEstimator(args, net)
-    elif args.env_type == 'simulation_joint2force':
-        net = MLP(n_input_channel=args.n_input_channel,
-                  n_output_channel=args.n_output_channel,
-                  n_hidden=args.n_hidden,
-                  kernel_size=args.kernel_size,
-                  resolution=args.resolution,
-                  dropout=args.dropout)
-        net.build()
-    elif args.network == 'resnet':
-        net = ResNet(n_input_channel=args.n_input_channel,
-                     n_output_channel=args.n_output_channel,
-                     n_hidden=args.n_hidden,
-                     kernel_size=args.kernel_size,
-                     resolution=args.resolution,
-                     dropout=args.dropout)
-        net.build()
-    elif args.network == 'mlpresnet':
+    if args.network == 'mlpresnet':
         net = MlpResNet(n_input_channel=args.n_input_channel,
                         n_output_channel=args.n_output_channel,
                         n_hidden=args.n_hidden,
@@ -541,31 +329,6 @@ def create_estimator(args):
                                 mlp_dim=256,
                                 dim_head=args.n_hidden,
                                 grad_on_one_frame = args.grad_on_one_frame)
-                                
-    elif args.network == 'resnetcubic':
-        net = ResNetCubic(n_input_channel=args.n_input_channel,
-                          n_output_channel=args.n_output_channel,
-                          n_hidden=args.n_hidden,
-                          kernel_size=args.kernel_size,
-                          resolution=args.resolution,
-                          dropout=args.dropout)
-        net.build()
-    elif args.network == 'ecnn':
-        net = SO2SteerableCNN(n_input_channel=args.n_input_channel,
-                              n_output_channel=args.n_output_channel,
-                              n_hidden=args.n_hidden,
-                              kernel_size=args.kernel_size,
-                              resolution=args.resolution)
-    elif args.network == 'tf':
-        net = SimpleViT(image_size=(args.h, args.w),
-                        patch_size=20,
-                        num_classes=args.n_output_channel,
-                        dim=128,
-                        depth=5,
-                        heads=10,
-                        mlp_dim=1024,
-                        channels=args.n_input_channel,
-                        dim_head=32)
     else:
         raise NotImplementedError
     net.to(args.device)
