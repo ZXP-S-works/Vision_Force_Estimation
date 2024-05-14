@@ -56,9 +56,7 @@ def parse_args():
     parser.add_argument('--loss_on_entire_history', type=strToBool, default=False)
     parser.add_argument('--patience', type=int, default=5)
     parser.add_argument('--segmented_imgs', type=strToBool, default=True)
-    parser.add_argument('--background_img_folder', type=str, \
-        default='/vast/palmer/home.grace/yz2379/project/Data/MIT_Indoor/indoorCVPR_09/Images/office/')
-    
+
     ## augmentation
     parser.add_argument('--segmentation_aug', type=strToBool, default=False)
     parser.add_argument('--speed_augmentation', type=strToBool, default=False)
