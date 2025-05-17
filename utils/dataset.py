@@ -83,10 +83,6 @@ class VisionForceDataset:
                 self.add(new_dp)
             except Exception as e:
                 print(str(e), name, i)
-                
-            debug += 1
-            if debug > 500:
-                break
             if self.__len__() % 10000 == 0:
                 print(f'Still loading data.. Loaded {self.__len__()} data points')
         print(f'Dataset Loaded with {len(self._storage)} data points')
