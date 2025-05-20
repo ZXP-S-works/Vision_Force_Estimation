@@ -11,7 +11,7 @@ We open source our gripper at https://github.com/grablab/openhand-hardware.
 See requirements.txt for all required packages. The installation is tested for Python version 3.11. 
 
 ## Data
-Download our training and testing data from [Zenodo](doi.org/10.5281/zenodo.15453923). The testing data include all the static force prediction tasks. 
+Download our training and testing data from DOI: 10.5281/zenodo.15453923. The testing data include all the static force prediction tasks. 
 
 ## Training
 
